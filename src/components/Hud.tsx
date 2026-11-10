@@ -115,7 +115,7 @@ export function Hud({ engine }: { engine: GameEngine }) {
 
       <PhaseBanner s={s} />
 
-      {s.lowHp && (
+      {s.lowHp && s.phase !== 'wiped' && (
         <div className="lowhp-warning">
           ⚠ ĐỘI SẮP HẾT MÁU · <span className="heart">❤</span> THẢ TIM ĐỂ HỒI MÁU!
         </div>

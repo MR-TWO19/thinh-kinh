@@ -537,7 +537,8 @@ button {
 
 .lowhp-warning {
   position: absolute;
-  top: 127cqw;
+  /* ngay trên thẻ Hợp kích (127.6cqw), không đè lên thẻ */
+  top: 119.5cqw;
   left: 3cqw;
   right: 3cqw;
   text-align: center;

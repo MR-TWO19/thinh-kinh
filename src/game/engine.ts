@@ -12,7 +12,6 @@ import {
   HEART_NUDGE,
   SEAL,
   SHIELD,
-  WIPED_NUDGE,
   SKILLS,
   casterName,
   type Caster,
@@ -1291,10 +1290,8 @@ export class GameEngine {
       return;
     }
     this.nudgeTimer = 7;
-    if (this.phase === 'wiped') {
-      this.nudge = { speaker: 'tang', text: WIPED_NUDGE, t: 0, max: 4.5 };
-      return;
-    }
+    // cả đội gục: banner ĐOÀN KIỆT SỨC đã nhắc thả tim, bong bóng thoại sẽ đè lên banner
+    if (this.phase === 'wiped') return;
     type Line = { speaker: Exclude<Caster, 'team'>; text: string; image?: string };
     const known = Object.keys(this.realGifts).length > 0;
     const lines: Line[] = [];

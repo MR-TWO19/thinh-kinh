@@ -130,7 +130,6 @@ export const COMBO_GOAL = GIFTS.find((g) => g.skill === 'team_combo')!.coins;
 
 /** câu nhắc thả tim của Đường Tăng */
 export const HEART_NUDGE = 'Thả tim để bần tăng hồi máu cho cả đội!';
-export const WIPED_NUDGE = 'Các đồ đệ gục cả rồi! Thả tim hồi sinh giúp bần tăng!';
 
 /** tên hiển thị của người ra chiêu */
 export function casterName(c: Caster): string {
