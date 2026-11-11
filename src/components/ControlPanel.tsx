@@ -5,6 +5,7 @@ import type { EventEnvelope } from '../events/types';
 import { GIFTS, SKILLS, STAGES, casterName } from '../game/config';
 import { GIFT_KEYS, useShortcuts } from './useShortcuts';
 import { TikTokConnect } from './TikTokConnect';
+import { autoAssist } from '../game/autoAssist';
 import { voice, VOICE_CATEGORIES, DEFAULT_STYLES, type Speaker } from '../game/voice';
 
 const TUNE: [Speaker, string, string][] = [
@@ -127,6 +128,47 @@ function describe(env: EventEnvelope): string {
  * Bảng điều khiển thử nghiệm. Mọi nút đều đi qua SimulatorSource -> eventBus,
  * đúng đường mà một nguồn livestream thật sẽ dùng.
  */
+/** trợ lực tự động: game tự tung chiêu / thả tim / hợp kích theo nhịp */
+function AutoAssistPanel() {
+  const st = useSyncExternalStore(autoAssist.subscribe, () => autoAssist.settings);
+  const opts: [keyof typeof st, string, string][] = [
+    ['skills', 'Tự tung chiêu', 'ngẫu nhiên 1 chiêu (trừ hợp kích) trong lúc đánh boss'],
+    ['hearts', 'Tự thả tim', 'nạp năng lượng cho sư phụ hồi máu'],
+    ['combo', 'Tự hợp kích', `mỗi ${st.comboMin} phút, tung ở trận kế tiếp`],
+  ];
+  return (
+    <>
+      <div className="voice-cats">
+        {opts.map(([k, label, hint]) => (
+          <label key={k} className="voice-cat">
+            <input type="checkbox" checked={st[k] as boolean} onChange={(ev) => autoAssist.set({ [k]: ev.target.checked })} />
+            <span>
+              <b>{label}</b>
+              <small>{hint}</small>
+            </span>
+          </label>
+        ))}
+      </div>
+      <label className="vt-slider auto-slider">
+        <span>Từ</span>
+        <input type="range" min={3} max={60} step={1} value={st.minSec} onChange={(ev) => autoAssist.set({ minSec: Number(ev.target.value) })} />
+        <b>{st.minSec}s</b>
+      </label>
+      <label className="vt-slider auto-slider">
+        <span>Đến</span>
+        <input type="range" min={3} max={90} step={1} value={st.maxSec} onChange={(ev) => autoAssist.set({ maxSec: Number(ev.target.value) })} />
+        <b>{st.maxSec}s</b>
+      </label>
+      <label className="vt-slider auto-slider">
+        <span>Hợp kích</span>
+        <input type="range" min={1} max={30} step={1} value={st.comboMin} onChange={(ev) => autoAssist.set({ comboMin: Number(ev.target.value) })} />
+        <b>{st.comboMin}p</b>
+      </label>
+      <p className="voice-note">Đây là hiệu ứng của game (“Phật Tổ trợ lực”), không gắn tên người xem và không tính vào tổng tim hay bảng đóng góp.</p>
+    </>
+  );
+}
+
 export function ControlPanel({ standalone = false }: { standalone?: boolean }) {
   const sim = useMemo(() => {
     const s = new SimulatorSource();
@@ -161,6 +203,11 @@ export function ControlPanel({ standalone = false }: { standalone?: boolean }) {
       <div className="panel-group">
         <div className="panel-label">🗣 Giọng đọc</div>
         <VoicePicker />
+      </div>
+
+      <div className="panel-group">
+        <div className="panel-label">✨ Trợ lực tự động</div>
+        <AutoAssistPanel />
       </div>
 
       <div className="panel-group">

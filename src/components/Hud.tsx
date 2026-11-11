@@ -132,15 +132,19 @@ export function Hud({ engine }: { engine: GameEngine }) {
       <PhaseBanner s={s} />
       {s.phase === 'quiz' && s.quiz && <QuizCard q={s.quiz} key={`quiz-${s.stageIndex}`} />}
 
-      {s.lowHp && s.phase !== 'wiped' && (
-        <div className="lowhp-warning">
-          ⚠ ĐỘI SẮP HẾT MÁU · <span className="heart">❤</span> THẢ TIM ĐỂ HỒI MÁU!
+      {/* các thẻ dưới đáy xếp chồng từ dưới lên: thẻ nào cao thêm thì đẩy thẻ trên lên, không đè nhau */}
+      {s.phase !== 'complete' && (
+        <div className="bottom-stack">
+          {s.lowHp && s.phase !== 'wiped' && (
+            <div className="lowhp-warning">
+              ⚠ ĐỘI SẮP HẾT MÁU · <span className="heart">❤</span> THẢ TIM ĐỂ HỒI MÁU!
+            </div>
+          )}
+          <ComboCard s={s} />
+          <EnergyBar s={s} />
+          <HeroCards s={s} />
         </div>
       )}
-
-      {s.phase !== 'complete' && <ComboCard s={s} />}
-      {s.phase !== 'complete' && <EnergyBar s={s} />}
-      {s.phase !== 'complete' && <HeroCards s={s} />}
       {s.phase === 'complete' && <CompleteOverlay s={s} />}
     </div>
   );
@@ -298,9 +302,9 @@ function HeroCards({ s }: { s: UiSnapshot }) {
             <div className="bar hero-track">
               <div className="bar-trail" style={{ width: `${r * 100}%` }} />
               <div className="bar-fill hero-fill" style={{ width: `${r * 100}%`, background: hpColor(r) }} />
-            </div>
-            <div className="hero-hp">
-              {h.hp}/{h.maxHp}
+              <span className="hero-hp">
+                {h.hp}/{h.maxHp}
+              </span>
             </div>
           </div>
         );

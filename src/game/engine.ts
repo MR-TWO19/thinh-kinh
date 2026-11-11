@@ -3,6 +3,7 @@ import { sfx } from './audio';
 import { music, type Mood } from './music';
 import type { RealGift } from '../events/relayProtocol';
 import { voice, speakableName, type Speaker } from './voice';
+import { autoAssist } from './autoAssist';
 import { QuizDeck, parseVote, type QuizQuestion } from './quiz';
 import { giftPhrase, viGiftName, loadCatalog, pickRealGifts, saveCatalog, type SkillGifts } from './realGifts';
 import {
@@ -303,6 +304,8 @@ export class GameEngine {
 
   private scheduled: { at: number; fn: () => void }[] = [];
   private pendingSkills: { skill: SkillId; count: number }[] = [];
+  /** trợ lực tự động: đếm ngược tới lần tung chiêu / thả tim / hợp kích kế tiếp (giây) */
+  private autoT = { skill: autoAssist.nextDelay(), heart: autoAssist.nextDelay(), combo: autoAssist.settings.comboMin * 60 };
   private toastSeq = 1;
   private minionSeq = 1;
   private alarmTimer = 0;
@@ -430,7 +433,15 @@ export class GameEngine {
     }
     if (p === 'victory') {
       sfx.victory();
-      voice.say(`Đã hàng phục ${this.stage.boss.name}!`, 'normal', 'game');
+      const onward =
+        this.stageIndex < STAGES.length - 1
+          ? pick([
+              'Thầy trò tiếp tục lên đường, hướng về Tây Thiên!',
+              'Đi tiếp thôi! Thẳng hướng Tây Thiên thỉnh kinh!',
+              'Thầy trò lại lên đường, tiếp tục hướng về Tây Thiên!',
+            ])
+          : 'Thầy trò tiếp tục lên đường, hướng về chùa Lôi Âm!';
+      voice.say(`Đã hàng phục ${this.stage.boss.name}! ${onward}`, 'normal', 'game');
       this.callout = null;
       // boss đã chết vì chiêu khác trước khi hợp kích kịp kết liễu: hoàn lại, để dành cho yêu quái sau
       if (this.combo.active && !this.combo.landed) {
@@ -1250,6 +1261,53 @@ export class GameEngine {
     });
   }
 
+  /**
+   * Trợ lực tự động (bật trong bảng điều khiển): cứ 10–20 giây tung 1 chiêu ngẫu nhiên / thả tim,
+   * mỗi 10 phút hợp kích một lần. Là hiệu ứng của game, không gắn tên người xem, không tính vào tổng tim.
+   */
+  private updateAuto(dt: number) {
+    const st = autoAssist.settings;
+    const fighting = this.phase === 'battle' && this.boss.hp > 0 && !this.combo.active;
+    // hợp kích: đồng hồ chạy suốt buổi live, tới hạn thì chờ trận kế tiếp để tung
+    if (st.combo) {
+      this.autoT.combo = Math.min(this.autoT.combo, st.comboMin * 60) - dt;
+      if (this.autoT.combo <= 0 && fighting) {
+        this.autoT.combo = st.comboMin * 60;
+        this.showCallout('✨ PHẬT TỔ TRỢ LỰC: HỢP KÍCH!', '#fff2a8');
+        this.performSkill('team_combo', 1);
+        return;
+      }
+    } else this.autoT.combo = st.comboMin * 60;
+    // chiêu / tim: chỉ đếm trong lúc đánh, để không dồn cục ngay đầu trận
+    if (this.phase !== 'battle') return;
+    if (st.skills) {
+      this.autoT.skill -= dt;
+      if (this.autoT.skill <= 0) {
+        this.autoT.skill = autoAssist.nextDelay();
+        if (fighting) {
+          const skill = pick<SkillId>(['wk_staff', 'wk_ultimate', 'bj_quake', 'bj_slam', 'st_shield', 'st_crescent', 'tg_seal']);
+          this.performSkill(skill, 1);
+        }
+      }
+    }
+    if (st.hearts) {
+      this.autoT.heart -= dt;
+      if (this.autoT.heart <= 0) {
+        this.autoT.heart = autoAssist.nextDelay();
+        const n = 10;
+        for (let i = 0; i < n; i++) this.later(i * 0.06, () => this.spawnHeart());
+        sfx.like();
+        this.tang.energy = Math.min(TANG.energyMax * 2, this.tang.energy + n * TANG.energyPerLike);
+        this.tryCastHeal();
+      }
+    }
+  }
+
+  /** giây còn lại tới lần hợp kích tự động (null nếu đang tắt) */
+  autoComboIn(): number | null {
+    return autoAssist.settings.combo ? Math.max(0, this.autoT.combo) : null;
+  }
+
   private showCallout(text: string, color: string) {
     this.callout = { id: this.toastSeq++, text, color, expires: this.time + 1.6 };
   }
@@ -1269,6 +1327,8 @@ export class GameEngine {
         due.forEach((s) => s.fn());
       }
     }
+
+    this.updateAuto(dt);
 
     // các pha
     switch (this.phase) {

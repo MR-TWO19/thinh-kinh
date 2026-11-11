@@ -1422,3 +1422,49 @@ button {
 .vt-slider input { flex: 1; accent-color: #ffd24a; }
 .vt-slider b { width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
 .gchip .gcoin { font-size: 0.95em; margin-right: 0.3cqw; }
+.auto-slider span { width: 64px; white-space: nowrap; }
+
+/* đáy màn hình: Hợp kích · Đường Tăng · 3 đệ tử xếp dọc, neo ở đáy */
+.bottom-stack {
+  position: absolute;
+  left: 3cqw;
+  right: 3cqw;
+  bottom: 3cqw;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6cqw;
+}
+.bottom-stack > .lowhp-warning,
+.bottom-stack > .combo-card,
+.bottom-stack > .energy,
+.bottom-stack > .heroes {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+}
+
+/* gọn đáy màn hình để không che chân nhân vật (mặt đất ở 125cqw) */
+.bottom-stack { gap: 1cqw; }
+.bottom-stack > .lowhp-warning {
+  position: absolute;
+  bottom: calc(100% + 1cqw);
+  left: 0;
+  right: 0;
+}
+.hero-card { padding: 1.2cqw 1.8cqw 1.2cqw; }
+.hero-track { position: relative; height: 3.4cqw; border-radius: 1.7cqw; }
+.hero-track .hero-hp {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.3cqw;
+  line-height: 1;
+  text-shadow: 0 0 0.6cqw #000, 0 0 0.3cqw #000;
+}
+.hero-gifts { gap: 0.3cqw; margin: 0.4cqw 0 0.6cqw; }
+.hero-gifts .gimg.big { width: 3.8cqw; height: 3.8cqw; }
