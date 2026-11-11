@@ -173,6 +173,8 @@ export interface Companion {
 export interface UiSnapshot {
   phase: Phase;
   stageIndex: number;
+  /** kiếp nạn này không có câu đố né, bắt buộc phải đánh */
+  forcedFight: boolean;
   stageCount: number;
   stage: StageDef;
   progress: number;
@@ -255,6 +257,9 @@ export class GameEngine {
   phase: Phase = 'walking';
   phaseT = 0;
   stageIndex = 0;
+  /** số lần câu đố né kiếp nạn liên tiếp; đủ TIMING.quizPerForced thì kiếp nạn sau bắt buộc phải đánh */
+  private quizStreak = 0;
+  forcedFight = false;
   worldX = 0;
 
   heroes: HeroState[] = [];
@@ -337,6 +342,8 @@ export class GameEngine {
 
   resetJourney() {
     this.stageIndex = 0;
+    this.quizStreak = 0;
+    this.forcedFight = false;
     this.worldX = 0;
     this.totalLikes = 0;
     this.comboMeter = 0;
@@ -422,7 +429,9 @@ export class GameEngine {
       voice.say(
         prev === 'quiz'
           ? `${this.stage.boss.name} xuất hiện!`
-          : `Kiếp nạn thứ ${this.stage.index}: ${this.stage.name}. ${this.stage.boss.name} xuất hiện!`,
+          : this.forcedFight
+            ? `Kiếp nạn thứ ${this.stage.index}: ${this.stage.name}! Đường này không có lối tắt, không thể né! Phải đánh ${this.stage.boss.name} thôi!`
+            : `Kiếp nạn thứ ${this.stage.index}: ${this.stage.name}. ${this.stage.boss.name} xuất hiện!`,
         'normal',
         'game',
       );
@@ -1341,7 +1350,13 @@ export class GameEngine {
     switch (this.phase) {
       case 'walking':
         this.worldX += 150 * dt;
-        if (this.phaseT >= TIMING.walk) this.setPhase('quiz');
+        if (this.phaseT >= TIMING.walk) {
+          // 2 lần câu đố né kiếp nạn thì 1 lần bắt buộc phải đánh
+          this.forcedFight = this.quizStreak >= TIMING.quizPerForced;
+          if (this.forcedFight) this.quizStreak = 0;
+          else this.quizStreak += 1;
+          this.setPhase(this.forcedFight ? 'intro' : 'quiz');
+        }
         break;
       case 'quiz':
         if (this.quiz?.reading) {
@@ -1363,7 +1378,7 @@ export class GameEngine {
         break;
       case 'intro':
         this.boss.enterT = Math.min(1, this.phaseT / (TIMING.intro * 0.7));
-        if (this.phaseT >= TIMING.intro) this.setPhase('battle');
+        if (this.phaseT >= (this.forcedFight ? TIMING.introForced : TIMING.intro)) this.setPhase('battle');
         break;
       case 'battle':
         this.updateBattle(dt);
@@ -1706,6 +1721,7 @@ export class GameEngine {
       phase: this.phase,
       phaseT: this.phaseT,
       stageIndex: this.stageIndex,
+      forcedFight: this.forcedFight,
       stageCount: STAGES.length,
       stage: this.stage,
       progress: this.progress(),

@@ -229,6 +229,8 @@ export { STAGES } from './journey';
 export const TIMING = {
   walk: 4.5, // giây đi bộ trước mỗi kiếp nạn
   intro: 2.6, // giây giới thiệu boss
+  introForced: 4.5, // giây giới thiệu boss bắt buộc phải đánh (để kịp đọc thông báo)
+  quizPerForced: 2, // cứ bao nhiêu lần câu đố né kiếp nạn thì có 1 kiếp nạn bắt buộc phải đánh
   victory: 3.5, // giây ăn mừng
   quiz: 10, // giây bình chọn câu đố né kiếp nạn (đếm sau khi đọc xong câu hỏi)
   quizReadMax: 25, // giây chờ đọc câu hỏi tối đa, quá thì cứ đếm ngược

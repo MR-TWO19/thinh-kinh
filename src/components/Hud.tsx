@@ -366,6 +366,7 @@ function PhaseBanner({ s }: { s: UiSnapshot }) {
         <div className="pb-small">KIẾP NẠN THỨ {s.stage.index}</div>
         <div className="pb-big">{s.stage.name}</div>
         <div className="pb-sub">{s.stage.subtitle}</div>
+        {s.forcedFight && <div className="pb-forced">⚔ Không có đường tắt · bắt buộc phải đánh!</div>}
       </div>
     );
   if (s.phase === 'walking')

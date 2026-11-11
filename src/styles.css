@@ -1468,3 +1468,15 @@ button {
 }
 .hero-gifts { gap: 0.3cqw; margin: 0.4cqw 0 0.6cqw; }
 .hero-gifts .gimg.big { width: 3.8cqw; height: 3.8cqw; }
+
+.pb-forced {
+  margin-top: 1.4cqw;
+  display: inline-block;
+  padding: 0.8cqw 2.4cqw;
+  border-radius: 1.6cqw;
+  background: rgba(200, 0, 40, 0.88);
+  color: #fff;
+  font-weight: 900;
+  font-size: 3.2cqw;
+  animation: blink 0.8s infinite;
+}
