@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { RELAY_URL, type RealGift, type RelayClientMsg, type RelayServerMsg, type RelayStatus } from '../events/relayProtocol';
 import { GIFTS, SKILLS, casterName } from '../game/config';
-import { loadCatalog, pickRealGifts } from '../game/realGifts';
+import { loadCatalog, pickRealGifts, viGiftName } from '../game/realGifts';
 
 const NAME_KEY = 'tk-tiktok-user';
 
@@ -133,7 +133,7 @@ function GiftMap({ catalog }: { catalog: RealGift[] }) {
         return (
           <li key={g.id}>
             {r?.image ? <img src={r.image} alt="" referrerPolicy="no-referrer" /> : <span className="gm-none">–</span>}
-            <span className="gm-gift">{r ? `${r.name} · ${r.coins} xu` : `≥ ${g.coins} xu (phòng không có quà khớp)`}</span>
+            <span className="gm-gift">{r ? `${viGiftName(r.name)} · ${r.coins} xu` : `≥ ${g.coins} xu (phòng không có quà khớp)`}</span>
             <span className="gm-skill">
               {casterName(SKILLS[g.skill].hero)}: {SKILLS[g.skill].short}
             </span>

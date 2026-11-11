@@ -6,6 +6,8 @@ import { ControlPanel } from './components/ControlPanel';
 import { useShortcuts } from './components/useShortcuts';
 import { SimulatorSource } from './events/sources';
 import { TikTokRelaySource } from './events/tiktokSource';
+import { hasRealCatalog } from './game/realGifts';
+import type { RealGift } from './events/relayProtocol';
 
 /**
  * ?view=stage  -> chỉ sân khấu 9:16 (để capture bằng OBS / TikTok LIVE Studio)
@@ -32,6 +34,14 @@ function StageApp({ withPanel }: { withPanel: boolean }) {
   useEffect(() => {
     const live = new TikTokRelaySource();
     live.onCatalog = (gifts) => engine.setCatalog(gifts);
+    // trình duyệt này chưa có hình quà: lấy bảng quà relay đã lưu sẵn (public/gift-catalog.json)
+    if (!hasRealCatalog())
+      fetch('gift-catalog.json', { cache: 'no-cache' })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((gifts: RealGift[]) => {
+          if (Array.isArray(gifts) && gifts.some((g) => g.image)) engine.setCatalog(gifts);
+        })
+        .catch(() => {});
     live.start(eventBus);
     return () => live.stop();
   }, [engine]);

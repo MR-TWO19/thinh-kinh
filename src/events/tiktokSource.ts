@@ -2,6 +2,7 @@ import type { EventBus } from './bus';
 import { RELAY_URL, type RealGift, type RelayEvent, type RelayServerMsg } from './relayProtocol';
 import type { LiveEventSource } from './sources';
 import { giftForCoins } from '../game/config';
+import { viGiftName } from '../game/realGifts';
 
 /**
  * Nguồn sự kiện TikTok LIVE: nghe relay Node (npm run relay) qua WebSocket,
@@ -62,7 +63,7 @@ export class TikTokRelaySource implements LiveEventSource {
     else if (ev.type === 'chat') bus.emit({ type: 'chat', user: ev.user, text: ev.text }, 'live', local);
     else {
       const gift = giftForCoins(ev.coins);
-      bus.emit({ type: 'gift', user: ev.user, giftId: gift.id, count: ev.count, label: ev.giftName, coins: ev.coins, image: ev.image }, 'live', local);
+      bus.emit({ type: 'gift', user: ev.user, giftId: gift.id, count: ev.count, label: viGiftName(ev.giftName), coins: ev.coins, image: ev.image }, 'live', local);
     }
   }
 }

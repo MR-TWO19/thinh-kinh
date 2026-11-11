@@ -55,7 +55,7 @@ Số lượng quà mỗi lần bấm theo nút x1/x5/x10 đang chọn. Giữ ph�
 | Bát Giới | Địa Chấn | Đào Tiên (10 xu) | Đánh diện rộng, quét sạch lâu la |
 | Bát Giới | Thiên Bồng Giáng Thế | Bánh Bao (20 xu) | Bay lên rồi nện xuống đầu boss |
 | Sa Tăng | Kim Cang Hộ Thể | Chuông Đồng (5 xu) | Khiên chặn 70% sát thương trong 10 giây, hồi nhẹ máu |
-| Sa Tăng | Nguyệt Nha Phi Trảm | Tràng Hạt (3 xu) | Phóng trăng khuyết xuyên qua lâu la trúng boss |
+| Sa Tăng | Nguyệt Nha Phi Trảm | Tràng Hạt (70 xu, quà Single Strike) | Phóng trăng khuyết xuyên qua lâu la trúng boss |
 
 - **Chiêu đặc biệt · Thầy Trò Hợp Kích** (quà Liên Đài Phật Quang, 2000 xu): màn hình tối lại, cả đội hồi đầy máu, rồi lần lượt Đường Tăng định thân boss, Sa Tăng phóng 3 trăng khuyết, Bát Giới giáng thế, Ngộ Không phân thân vây đánh, cuối cùng một cây gậy Như Ý khổng lồ từ trời nện xuống và **hạ boss ngay**. Cả combo kéo dài khoảng 4 giây. Tặng nhiều quà một lần thì mỗi quà dư hạ boss của kiếp nạn kế tiếp.
 

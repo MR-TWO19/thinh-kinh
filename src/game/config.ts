@@ -63,7 +63,7 @@ export const GIFTS: GiftDef[] = [
   { id: 'bell', name: 'Chuông Đồng', icon: '🔔', coins: 5, tier: 2, skill: 'st_shield', color: '#4fb6ff' },
   { id: 'peach', name: 'Đào Tiên', icon: '🍑', coins: 10, tier: 3, skill: 'bj_quake', color: '#ff7aa8' },
   { id: 'cloud', name: 'Cân Đẩu Vân', icon: '☁️', coins: 99, tier: 4, skill: 'wk_ultimate', color: '#ffe066' },
-  { id: 'beads', name: 'Tràng Hạt', icon: '📿', coins: 3, tier: 1, skill: 'st_crescent', color: '#7fd4ff' },
+  { id: 'beads', name: 'Tràng Hạt', icon: '📿', coins: 70, tier: 4, skill: 'st_crescent', color: '#7fd4ff' },
   { id: 'bun', name: 'Bánh Bao', icon: '🥟', coins: 20, tier: 3, skill: 'bj_slam', color: '#ff9ec4' },
   { id: 'scroll', name: 'Kinh Thư', icon: '📜', coins: 30, tier: 3, skill: 'tg_seal', color: '#ffd24a' },
   /** quà lớn nhất: cả 4 thầy trò hợp kích, hạ boss ngay lập tức */
@@ -107,7 +107,7 @@ export const SKILLS: Record<SkillId, SkillDef> = {
   bj_quake: { id: 'bj_quake', hero: 'bajie', name: 'Cửu Xỉ Đinh Ba · Địa Chấn', short: 'Địa chấn', damage: 160, nudge: 'Cho lão Trư {qua}, ta nện Địa Chấn!' },
   bj_slam: { id: 'bj_slam', hero: 'bajie', name: 'Thiên Bồng Giáng Thế', short: 'Giáng thế', damage: 300, nudge: 'Tặng {qua}, lão Trư từ trời giáng xuống đầu yêu quái!' },
   st_shield: { id: 'st_shield', hero: 'sha', name: 'Kim Cang Hộ Thể', short: 'Khiên', damage: 0, nudge: 'Tặng {qua}, Sa Tăng dựng khiên che cả đội!' },
-  st_crescent: { id: 'st_crescent', hero: 'sha', name: 'Nguyệt Nha Phi Trảm', short: 'Trăng khuyết', damage: 70, nudge: 'Tặng {qua}, Sa Tăng phóng trăng khuyết!' },
+  st_crescent: { id: 'st_crescent', hero: 'sha', name: 'Nguyệt Nha Phi Trảm', short: 'Trăng khuyết', damage: 500, nudge: 'Tặng {qua}, Sa Tăng phóng trăng khuyết!' },
   tg_seal: { id: 'tg_seal', hero: 'tang', name: 'Kim Cang Chú · Định Thân', short: 'Định thân', damage: 0, nudge: 'Tặng {qua}, bần tăng niệm chú trói yêu quái!' },
   team_combo: { id: 'team_combo', hero: 'team', name: 'Thầy Trò Hợp Kích · Tây Thiên Diệt Ma', short: 'Hợp kích', damage: 0, nudge: 'Tặng {qua} hoặc cả phòng góp đủ xu: thầy trò hợp kích!' },
 };

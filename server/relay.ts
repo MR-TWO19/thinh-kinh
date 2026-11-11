@@ -8,6 +8,7 @@
  * Chạy:  npm run relay            (rồi nhập tên kênh trong bảng điều khiển)
  *        npm run relay -- tenkenh  (tự kết nối luôn)
  */
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { WebSocketServer, WebSocket } from 'ws';
 import { ControlEvent, TikTokLiveConnection, WebcastEvent } from 'tiktok-live-connector';
 import type { RealGift, RelayClientMsg, RelayEvent, RelayServerMsg, RelayStatus } from '../src/events/relayProtocol';
@@ -36,6 +37,21 @@ function normalizeCatalog(raw: unknown): RealGift[] {
     out.push({ id: String(g.id), name, coins, image: firstUrl(g.image as RawImage) ?? firstUrl(g.icon as RawImage) });
   }
   return out.sort((a, b) => a.coins - b.coins);
+}
+
+/**
+ * Lưu bảng quà (kèm hình) vào public/gift-catalog.json để mọi trình duyệt (kể cả OBS)
+ * hiện hình quà thật ngay khi mở game, không cần tự kết nối live lần nào.
+ */
+function saveCatalogFile(gifts: RealGift[]) {
+  try {
+    const dir = new URL('../public/', import.meta.url);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(new URL('gift-catalog.json', dir), JSON.stringify(gifts, null, 1));
+    console.log('[relay] đã lưu bảng quà vào public/gift-catalog.json');
+  } catch (err) {
+    console.warn('[relay] không lưu được bảng quà:', err instanceof Error ? err.message : err);
+  }
 }
 
 function send(ws: WebSocket, msg: RelayServerMsg) {
@@ -139,6 +155,7 @@ async function connect(rawName: string) {
         catalog = gifts;
         broadcast({ t: 'catalog', gifts });
         console.log(`[relay] đã tải ${gifts.length} quà của phòng`);
+        saveCatalogFile(gifts);
       }
     } catch (err) {
       console.warn('[relay] không tải được bảng quà:', err instanceof Error ? err.message : err);

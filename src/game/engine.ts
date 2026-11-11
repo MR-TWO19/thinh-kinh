@@ -4,7 +4,7 @@ import { music, type Mood } from './music';
 import type { RealGift } from '../events/relayProtocol';
 import { voice, speakableName, type Speaker } from './voice';
 import { QuizDeck, parseVote, type QuizQuestion } from './quiz';
-import { giftPhrase, loadCatalog, pickRealGifts, saveCatalog, type SkillGifts } from './realGifts';
+import { giftPhrase, viGiftName, loadCatalog, pickRealGifts, saveCatalog, type SkillGifts } from './realGifts';
 import {
   AUTO_ATTACK,
   GIFTS,
@@ -605,7 +605,7 @@ export class GameEngine {
       user: user.name,
       gift,
       // quà giả lập cũng hiện bằng quà thật tương ứng (nếu đã biết bảng quà) cho giống lúc live
-      label: label ?? this.realGifts[gift.skill]?.name,
+      label: label ?? (this.realGifts[gift.skill] ? viGiftName(this.realGifts[gift.skill]!.name) : undefined),
       image: image ?? (label ? undefined : this.realGifts[gift.skill]?.image),
       count,
       skillName: skill.name,
@@ -614,7 +614,7 @@ export class GameEngine {
     });
     if (this.giftToasts.length > 3) this.giftToasts.shift();
     sfx.gift(gift.tier);
-    const giftName = label ?? this.realGifts[gift.skill]?.name ?? gift.name;
+    const giftName = label ?? (this.realGifts[gift.skill] ? viGiftName(this.realGifts[gift.skill]!.name) : gift.name);
     voice.say(
       `Cảm ơn ${speakableName(user.name)} đã tặng ${count > 1 ? `${count} ` : ''}${speakableName(giftName)}!${gift.skill === 'team_combo' ? ' Thầy trò hợp kích!' : ''}`,
       gift.skill === 'team_combo' ? 'normal' : 'low',

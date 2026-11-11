@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from 'react';
 import { sfx } from '../game/audio';
 import { music } from '../game/music';
 import { voice } from '../game/voice';
+import { viGiftName } from '../game/realGifts';
 import type { GameEngine, UiSnapshot } from '../game/engine';
 import { GIFTS, SKILLS, giftForSkill, type Caster, type SkillId } from '../game/config';
 
@@ -19,11 +20,14 @@ function GiftChip({ skill, s }: { skill: SkillId; s: UiSnapshot }) {
   if (!real && Object.keys(s.realGifts).length > 0) return null;
   const coins = real?.coins ?? giftForSkill(skill).coins;
   return (
-    <span className="gchip" title={real ? `${real.name} · ${real.coins} xu` : undefined}>
+    <span className="gchip" title={real ? `${viGiftName(real.name)} · ${real.coins} xu` : undefined}>
       {real?.image ? (
-        <img className="gimg big" src={real.image} alt={real.name} referrerPolicy="no-referrer" />
+        <>
+          <img className="gimg big" src={real.image} alt={viGiftName(real.name)} referrerPolicy="no-referrer" />
+          <b className="gcoin">{coins} xu</b>
+        </>
       ) : (
-        <b>{coins} xu</b>
+        <b>{real ? `${viGiftName(real.name)} ${coins} xu` : `${coins} xu`}</b>
       )}{' '}
       {SKILLS[skill].short}
     </span>
@@ -208,7 +212,7 @@ function ComboCard({ s }: { s: UiSnapshot }) {
   const r = Math.min(1, s.comboMeter / s.comboGoal);
   const real = s.realGifts.team_combo;
   const icon = real?.image ? (
-    <img className="combo-gift-img" src={real.image} alt={real.name} referrerPolicy="no-referrer" />
+    <img className="combo-gift-img" src={real.image} alt={viGiftName(real.name)} referrerPolicy="no-referrer" />
   ) : (
     <span className="combo-gift-emoji">{giftForSkill('team_combo').icon}</span>
   );
@@ -216,7 +220,7 @@ function ComboCard({ s }: { s: UiSnapshot }) {
     <div className={`combo-card ${s.comboActive ? 'firing' : ''} ${r > 0.8 ? 'near' : ''}`}>
       <div className="combo-gift">
         {icon}
-        <span className="combo-gift-price">{real?.coins ?? s.comboGoal} xu</span>
+        <span className="combo-gift-price">{real && !real.image ? `${viGiftName(real.name)} · ${real.coins} xu` : `${real?.coins ?? s.comboGoal} xu`}</span>
       </div>
       <div className="combo-body">
         <div className="combo-title">
