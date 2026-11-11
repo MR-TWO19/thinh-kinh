@@ -2,7 +2,7 @@ import type { EventEnvelope, LiveUser } from '../events/types';
 import { sfx } from './audio';
 import { music, type Mood } from './music';
 import type { RealGift } from '../events/relayProtocol';
-import { voice, speakableName } from './voice';
+import { voice, speakableName, type Speaker } from './voice';
 import { QuizDeck, parseVote, type QuizQuestion } from './quiz';
 import { giftPhrase, loadCatalog, pickRealGifts, saveCatalog, type SkillGifts } from './realGifts';
 import {
@@ -233,6 +233,17 @@ function saveStage(i: number) {
 /** thời điểm gậy khổng lồ nện xuống trong chiêu hợp kích (giây) */
 export const COMBO_IMPACT = 4.1;
 
+/** câu hô khi tung chiêu */
+const SKILL_SHOUTS: Partial<Record<SkillId, { speaker: Speaker; lines: string[] }>> = {
+  wk_staff: { speaker: 'wukong', lines: ['Ăn một gậy của lão Tôn đây!', 'Yêu quái, xem gậy!', 'Hây za! Gậy Như Ý!'] },
+  wk_ultimate: { speaker: 'wukong', lines: ['Thân ngoại thân! Biến!', 'Bảy mươi hai phép biến hoá, ra đây hết cho ta!'] },
+  bj_quake: { speaker: 'bajie', lines: ['Hự! Địa chấn đây!', 'Lão Trư nện một phát cho biết tay!'] },
+  bj_slam: { speaker: 'bajie', lines: ['Thiên Bồng Nguyên Soái giáng thế đây!', 'Tránh ra! Lão Trư rơi xuống đây!'] },
+  st_crescent: { speaker: 'sha', lines: ['Nguyệt nha phi trảm!', 'Đỡ chiêu trăng khuyết này!'] },
+  st_shield: { speaker: 'sha', lines: ['Kim cang hộ thể! Sư phụ yên tâm!', 'Các sư huynh, đứng sau đệ!'] },
+  tg_seal: { speaker: 'tang', lines: ['Án ma ni bát di hồng! Định!', 'Yêu nghiệt, đứng yên!'] },
+};
+
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -275,6 +286,8 @@ export class GameEngine {
   } | null = null;
   private quizDeck = new QuizDeck();
   private lastGiftAt = 0;
+  /** lúc mỗi nhân vật hô gần nhất (để không hô dồn dập khi quà tới liên tục) */
+  private shoutAt: Partial<Record<Speaker, number>> = {};
   private nudgeTimer = 8;
   private nudgeIdx = 0;
   shake = 0;
@@ -635,9 +648,17 @@ export class GameEngine {
     }
   }
 
+  /** nhân vật hô khi tung chiêu; mỗi nhân vật nghỉ vài giây giữa hai lần hô */
+  private shout(speaker: Speaker, lines: string[], gap = 4, prio: 'low' | 'normal' = 'low') {
+    if (this.time - (this.shoutAt[speaker] ?? -99) < gap) return;
+    if (voice.say(pick(lines), prio, 'chars', undefined, speaker)) this.shoutAt[speaker] = this.time;
+  }
+
   private performSkill(skillId: SkillId, count: number) {
     if (this.phase !== 'battle' && this.phase !== 'wiped') return;
     const def = SKILLS[skillId];
+    const shout = SKILL_SHOUTS[skillId];
+    if (shout) this.shout(shout.speaker, shout.lines);
 
     if (skillId === 'team_combo') {
       // đang diễn hợp kích thì để dành cho kiếp nạn sau; tặng nhiều thì mỗi quà hạ một boss
@@ -953,7 +974,11 @@ export class GameEngine {
       });
     }
     // 5. Kết liễu: gậy Như Ý khổng lồ
-    this.later(3.6, () => alive() && this.showCallout('TÂY THIÊN DIỆT MA!', '#ffffff'));
+    this.later(3.6, () => {
+      if (!alive()) return;
+      this.showCallout('TÂY THIÊN DIỆT MA!', '#ffffff');
+      this.shout('wukong', ['Thầy trò đồng lòng! Tây Thiên diệt ma!'], 0, 'normal');
+    });
     this.later(COMBO_IMPACT, () => {
       if (!alive()) return;
       sfx.heavy();
@@ -983,6 +1008,7 @@ export class GameEngine {
     this.tang.energy -= TANG.energyMax;
     this.tang.castT = this.tang.castDur;
     this.showCallout('ĐƯỜNG TĂNG · PHẬT QUANG PHỔ CHIẾU', '#9dffc4');
+    this.shout('tang', ['A di đà Phật! Phật quang phổ chiếu!', 'Các đồ đệ, hồi sức nào!', 'Thiện tai, thiện tai!'], 10);
     this.later(this.tang.castDur * 0.7, () => {
       sfx.heal();
       this.flash = { color: '#d6ffe6', a: 0.35 };
@@ -1440,6 +1466,8 @@ export class GameEngine {
     const line = lines[this.nudgeIdx % lines.length];
     this.nudgeIdx += 1;
     this.nudge = { ...line, t: 0, max: 4.5 };
+    // nhân vật nói câu xin quà bằng giọng của mình (chỉ khi đang rảnh, không chen câu khác)
+    voice.say(line.text, 'idle', 'chars', undefined, line.speaker);
   }
 
   private updateBattle(dt: number) {

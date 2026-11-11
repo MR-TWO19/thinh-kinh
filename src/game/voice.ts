@@ -17,17 +17,51 @@ export type VoicePriority = 'high' | 'normal' | 'low' | 'idle';
 
 const KEY_ON = 'tk-voice';
 const KEY_CATS = 'tk-voice-cats';
+const KEY_STYLES = 'tk-voice-styles';
 
 /** các nhóm câu đọc, bật / tắt riêng trong bảng điều khiển */
-export type VoiceCategory = 'thanks' | 'quiz' | 'game';
+export type VoiceCategory = 'thanks' | 'quiz' | 'game' | 'chars';
 export const VOICE_CATEGORIES: { id: VoiceCategory; label: string; hint: string }[] = [
   { id: 'thanks', label: 'Cảm ơn khách tặng quà', hint: '“Cảm ơn … đã tặng …!”' },
   { id: 'quiz', label: 'Đọc câu đố', hint: 'câu hỏi, đáp án 1/2/3, còn 3 giây, kết quả' },
   { id: 'game', label: 'Thông báo trận', hint: 'boss xuất hiện, hàng phục, đoàn kiệt sức, về đích' },
+  { id: 'chars', label: 'Nhân vật nói', hint: 'xin quà khi phòng im, hô khi tung chiêu' },
 ];
 
+/** ai đang nói: mỗi nhân vật đổi cao độ / tốc độ cho ra chất giọng riêng */
+export type Speaker = 'narrator' | 'wukong' | 'bajie' | 'sha' | 'tang';
+export interface VoiceStyle {
+  pitch: number;
+  rate: number;
+  male: boolean;
+}
+export const DEFAULT_STYLES: Record<Speaker, VoiceStyle> = {
+  narrator: { pitch: 1, rate: 1.05, male: false },
+  // khỉ: cao, nhanh, lanh lảnh
+  wukong: { pitch: 1.75, rate: 1.3, male: true },
+  // heo: trầm ồm, chậm rề rà
+  bajie: { pitch: 0.45, rate: 0.85, male: true },
+  // Sa Tăng: trầm, điềm đạm
+  sha: { pitch: 0.7, rate: 0.95, male: true },
+  // sư phụ: hiền, chậm rãi
+  tang: { pitch: 1.0, rate: 0.85, male: true },
+};
+const isMale = (v: SpeechSynthesisVoice) => /NamMinh|\bAn\b|\bMale\b/i.test(v.name);
+
+/** cao độ / tốc độ từng nhân vật người dùng tự chỉnh (lưu lại) */
+function loadStyles(): Record<Speaker, VoiceStyle> {
+  const out = structuredClone(DEFAULT_STYLES);
+  try {
+    const saved = JSON.parse(read(KEY_STYLES) ?? '{}') as Partial<Record<Speaker, Partial<VoiceStyle>>>;
+    for (const k of Object.keys(out) as Speaker[]) Object.assign(out[k], saved[k] ?? {});
+  } catch {
+    /* bỏ qua */
+  }
+  return out;
+}
+
 function loadCats(): Record<VoiceCategory, boolean> {
-  const cats = { thanks: true, quiz: true, game: true };
+  const cats = { thanks: true, quiz: true, game: true, chars: true };
   try {
     Object.assign(cats, JSON.parse(read(KEY_CATS) ?? '{}'));
   } catch {
@@ -79,11 +113,13 @@ class Voice {
   enabled = read(KEY_ON) !== '0';
   /** bật / tắt từng nhóm câu đọc */
   cats = loadCats();
+  /** cao độ / tốc độ từng nhân vật */
+  styles = loadStyles();
   /** các giọng tiếng Việt trên máy, giọng tốt nhất đứng đầu */
   voices: SpeechSynthesisVoice[] = [];
   current: SpeechSynthesisVoice | null = null;
 
-  private queue: { text: string; prio: VoicePriority; onDone?: () => void }[] = [];
+  private queue: { text: string; prio: VoicePriority; onDone?: () => void; speaker: Speaker }[] = [];
   private activeDone: (() => void) | undefined;
   private speaking = false;
   /** câu đang đọc; sự kiện xong/lỗi của câu đã bị cắt ngang thì bỏ qua */
@@ -98,6 +134,10 @@ class Voice {
     window.addEventListener('storage', (e) => {
       if (e.key === KEY_NAME) this.load();
       if (e.key === KEY_ON) this.applyEnabled(e.newValue !== '0');
+      if (e.key === KEY_STYLES) {
+        this.styles = loadStyles();
+        this.emit();
+      }
       if (e.key === KEY_CATS) {
         this.cats = loadCats();
         this.emit();
@@ -141,6 +181,16 @@ class Voice {
     this.emit();
   }
 
+  setStyle(who: Speaker, patch: Partial<VoiceStyle>) {
+    this.styles = { ...this.styles, [who]: { ...this.styles[who], ...patch } };
+    write(KEY_STYLES, JSON.stringify(this.styles));
+    this.emit();
+  }
+
+  resetStyle(who: Speaker) {
+    this.setStyle(who, DEFAULT_STYLES[who]);
+  }
+
   setVoice(name: string) {
     write(KEY_NAME, name);
     this.load();
@@ -162,13 +212,13 @@ class Voice {
    * cat: nhóm câu đọc; bỏ trống = luôn đọc (như nút nghe thử).
    * onDone: gọi khi đọc xong (hoặc bị cắt ngang). Trả về false nếu câu không được đọc (khi đó onDone không được gọi).
    */
-  say(text: string, prio: VoicePriority = 'normal', cat?: VoiceCategory, onDone?: () => void): boolean {
+  say(text: string, prio: VoicePriority = 'normal', cat?: VoiceCategory, onDone?: () => void, speaker: Speaker = 'narrator'): boolean {
     if (!this.supported || !this.enabled || sfx.muted || !this.current || !text) return false;
     if (cat && !this.cats[cat]) return false;
     if (prio === 'idle' && (this.speaking || this.queue.length)) return false;
     if (prio === 'low' && this.queue.length >= 2) return false;
     if (prio === 'high') this.stop();
-    this.queue.push({ text, prio, onDone });
+    this.queue.push({ text, prio, onDone, speaker });
     this.pump();
     return true;
   }
@@ -181,9 +231,13 @@ class Voice {
       return;
     }
     const u = new SpeechSynthesisUtterance(next.text);
-    if (this.current) u.voice = this.current;
-    u.lang = this.current?.lang ?? 'vi-VN';
-    u.rate = 1.05;
+    const style = this.styles[next.speaker];
+    // nhân vật nam: dùng giọng nam nếu máy có (Edge: NamMinh, Windows: An), không thì dùng giọng đang chọn
+    const v = style.male && this.current && !isMale(this.current) ? (this.voices.find(isMale) ?? this.current) : this.current;
+    if (v) u.voice = v;
+    u.lang = v?.lang ?? 'vi-VN';
+    u.rate = style.rate;
+    u.pitch = style.pitch;
     u.volume = 1;
     const done = () => {
       if (this.active !== u) return;

@@ -1412,3 +1412,12 @@ button {
 .voice-cat input { width: 16px; height: 16px; accent-color: #ffd24a; }
 .voice-cat span { display: flex; flex-direction: column; line-height: 1.25; }
 .voice-cat small { opacity: 0.65; font-size: 11px; }
+
+.voice-tune { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.vt-row { padding: 6px 8px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); }
+.vt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.vt-reset { background: none; border: 0; color: #ffd24a; font-size: 12px; cursor: pointer; }
+.vt-slider { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.vt-slider span { width: 46px; opacity: 0.75; }
+.vt-slider input { flex: 1; accent-color: #ffd24a; }
+.vt-slider b { width: 32px; text-align: right; font-variant-numeric: tabular-nums; }

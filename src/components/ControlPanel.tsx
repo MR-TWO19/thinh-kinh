@@ -5,7 +5,55 @@ import type { EventEnvelope } from '../events/types';
 import { GIFTS, SKILLS, STAGES, casterName } from '../game/config';
 import { GIFT_KEYS, useShortcuts } from './useShortcuts';
 import { TikTokConnect } from './TikTokConnect';
-import { voice, VOICE_CATEGORIES } from '../game/voice';
+import { voice, VOICE_CATEGORIES, DEFAULT_STYLES, type Speaker } from '../game/voice';
+
+const TUNE: [Speaker, string, string][] = [
+  ['wukong', 'Ngộ Không', 'Ăn một gậy của lão Tôn đây!'],
+  ['bajie', 'Bát Giới', 'Hự! Lão Trư nện một phát cho biết tay!'],
+  ['sha', 'Sa Tăng', 'Kim cang hộ thể! Sư phụ yên tâm!'],
+  ['tang', 'Sư phụ', 'A di đà Phật! Phật quang phổ chiếu!'],
+  ['narrator', 'Người dẫn', 'Cảm ơn bạn đã tặng Hoa Hồng!'],
+];
+
+/** chỉnh cao độ / tốc độ từng nhân vật, nghe thử ngay */
+function VoiceTuner() {
+  useSyncExternalStore(voice.subscribe, () => JSON.stringify(voice.styles));
+  return (
+    <div className="voice-tune">
+      {TUNE.map(([id, name, line]) => {
+        const st = voice.styles[id];
+        const def = DEFAULT_STYLES[id];
+        const changed = st.pitch !== def.pitch || st.rate !== def.rate;
+        const hear = () => voice.say(line, 'high', undefined, undefined, id);
+        return (
+          <div key={id} className="vt-row">
+            <div className="vt-head">
+              <button className="chip" onClick={hear}>
+                🔈 {name}
+              </button>
+              {changed && (
+                <button className="vt-reset" onClick={() => voice.resetStyle(id)} title="Về mặc định">
+                  ↺ mặc định
+                </button>
+              )}
+            </div>
+            <label className="vt-slider">
+              <span>Cao độ</span>
+              <input type="range" min={0.1} max={2} step={0.05} value={st.pitch} onChange={(ev) => voice.setStyle(id, { pitch: Number(ev.target.value) })} onPointerUp={hear} />
+              <b>{st.pitch.toFixed(2)}</b>
+            </label>
+            <label className="vt-slider">
+              <span>Tốc độ</span>
+              <input type="range" min={0.5} max={2} step={0.05} value={st.rate} onChange={(ev) => voice.setStyle(id, { rate: Number(ev.target.value) })} onPointerUp={hear} />
+              <b>{st.rate.toFixed(2)}</b>
+            </label>
+          </div>
+        );
+      })}
+      <p className="voice-note">Kéo thanh rồi thả ra để nghe thử. Cao độ thấp = giọng trầm ồm, cao = lanh lảnh. Một số giọng online của Edge có thể không đổi được cao độ.</p>
+    </div>
+  );
+}
 
 /** chọn giọng đọc tiếng Việt có trên máy */
 function VoicePicker() {
@@ -35,6 +83,7 @@ function VoicePicker() {
           Nghe thử
         </button>
       </div>
+      <VoiceTuner />
       <div className={`voice-cats ${voice.enabled ? '' : 'off'}`}>
         {VOICE_CATEGORIES.map((c) => (
           <label key={c.id} className="voice-cat">
