@@ -1,6 +1,7 @@
 import { useState, useSyncExternalStore } from 'react';
 import { sfx } from '../game/audio';
 import { music } from '../game/music';
+import { voice } from '../game/voice';
 import type { GameEngine, UiSnapshot } from '../game/engine';
 import { GIFTS, SKILLS, giftForSkill, type Caster, type SkillId } from '../game/config';
 
@@ -35,6 +36,7 @@ export function Hud({ engine }: { engine: GameEngine }) {
   const s = useSyncExternalStore(engine.subscribe, engine.getSnapshot);
   const [muted, setMuted] = useState(sfx.muted);
   const [musicOn, setMusicOn] = useState(music.enabled);
+  useSyncExternalStore(voice.subscribe, () => `${voice.enabled}|${voice.voices.length}`);
 
   return (
     <div className="hud">
@@ -46,6 +48,7 @@ export function Hud({ engine }: { engine: GameEngine }) {
         className="mute-btn"
         onClick={() => {
           sfx.setMuted(!muted);
+          if (!muted) voice.stop();
           setMuted(!muted);
         }}
         title={muted ? 'Bật âm thanh' : 'Tắt âm thanh'}
@@ -62,6 +65,15 @@ export function Hud({ engine }: { engine: GameEngine }) {
       >
         🎵
       </button>
+      {voice.supported && voice.voices.length > 0 && (
+        <button
+          className={`mute-btn voice-btn ${voice.enabled ? '' : 'off'}`}
+          onClick={() => voice.setEnabled(!voice.enabled)}
+          title={voice.enabled ? 'Tắt giọng đọc' : 'Bật giọng đọc'}
+        >
+          🗣
+        </button>
+      )}
 
       <div className="left-col">
         <div className="join-stack">
@@ -299,7 +311,7 @@ function hpColor(r: number) {
   return 'linear-gradient(90deg,#2ed47a,#8affb5)';
 }
 
-const LETTERS = ['A', 'B', 'C'];
+const LETTERS = ['1', '2', '3'];
 
 /** câu đố trước boss: người xem bình luận A / B / C */
 function QuizCard({ q }: { q: NonNullable<UiSnapshot['quiz']> }) {
@@ -308,8 +320,8 @@ function QuizCard({ q }: { q: NonNullable<UiSnapshot['quiz']> }) {
   return (
     <div className={`quiz-card ${r ? (r.ok ? 'ok' : 'fail') : ''}`}>
       <div className="quiz-head">
-        <span className="quiz-tag">❓ CÂU ĐỐ NÉ YÊU QUÁI</span>
-        {!r && <span className="quiz-timer">{Math.ceil(q.timeLeft)}s</span>}
+        <span className="quiz-tag">❓ CÂU ĐỐ NÉ KIẾP NẠN</span>
+        {!r && !q.reading && <span className="quiz-timer">{Math.ceil(q.timeLeft)}s</span>}
       </div>
       <div className="quiz-q">{q.question}</div>
       <div className="quiz-opts">
@@ -329,11 +341,11 @@ function QuizCard({ q }: { q: NonNullable<UiSnapshot['quiz']> }) {
       <div className="quiz-foot">
         {r
           ? r.ok
-            ? `✅ Đáp án ${LETTERS[r.correct]} đúng! Thầy trò né được yêu quái, đi tiếp!`
+            ? `✅ Đáp án số ${LETTERS[r.correct]} đúng! Thầy trò né được kiếp nạn, đi tiếp!`
             : r.chosen < 0
-              ? `❌ Không ai trả lời! Đáp án đúng là ${LETTERS[r.correct]}. Phải đánh boss!`
-              : `❌ Chọn ${LETTERS[r.chosen]} sai rồi! Đáp án đúng là ${LETTERS[r.correct]}. Phải đánh boss!`
-          : `💬 Bình luận A, B hoặc C để chọn · ${q.total} người đã trả lời`}
+              ? `❌ Không ai trả lời! Đáp án đúng là số ${LETTERS[r.correct]}. Phải đánh boss!`
+              : `❌ Chọn số ${LETTERS[r.chosen]} sai rồi! Đáp án đúng là số ${LETTERS[r.correct]}. Phải đánh boss!`
+          : `💬 Bình luận 1, 2 hoặc 3 để chọn · ${q.total} người đã trả lời`}
       </div>
     </div>
   );

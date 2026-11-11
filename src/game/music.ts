@@ -311,6 +311,7 @@ class Music {
   private nextAt = 0;
   private timer: ReturnType<typeof setInterval> | null = null;
   private ducked = false;
+  private voiceDucked = false;
 
   constructor() {
     try {
@@ -337,6 +338,13 @@ class Music {
     this.applyVolume(0.25);
   }
 
+  /** hạ nhạc khi giọng đọc đang nói */
+  voiceDuck(on: boolean) {
+    if (on === this.voiceDucked) return;
+    this.voiceDucked = on;
+    this.applyVolume(0.25);
+  }
+
   setMood(m: Mood) {
     if (m === this.mood) return;
     this.mood = m;
@@ -347,7 +355,7 @@ class Music {
 
   private applyVolume(ramp: number) {
     if (!this.bus || !this.graph) return;
-    const v = this.enabled ? (this.ducked ? VOL * 0.25 : VOL) : 0;
+    const v = this.enabled ? (this.ducked ? VOL * 0.25 : this.voiceDucked ? VOL * 0.35 : VOL) : 0;
     const now = this.graph.ctx.currentTime;
     this.bus.gain.cancelScheduledValues(now);
     this.bus.gain.setTargetAtTime(v, now, ramp / 3);

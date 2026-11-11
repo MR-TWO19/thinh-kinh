@@ -230,7 +230,8 @@ export const TIMING = {
   walk: 4.5, // giây đi bộ trước mỗi kiếp nạn
   intro: 2.6, // giây giới thiệu boss
   victory: 3.5, // giây ăn mừng
-  quiz: 10, // giây bình chọn câu đố né yêu quái
+  quiz: 10, // giây bình chọn câu đố né kiếp nạn (đếm sau khi đọc xong câu hỏi)
+  quizReadMax: 25, // giây chờ đọc câu hỏi tối đa, quá thì cứ đếm ngược
   quizResult: 3.2, // giây hiện kết quả câu đố
   finalWalk: 5, // giây đi bộ đến chùa
 };

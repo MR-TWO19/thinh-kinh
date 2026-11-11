@@ -2,6 +2,7 @@ import type { EventEnvelope, LiveUser } from '../events/types';
 import { sfx } from './audio';
 import { music, type Mood } from './music';
 import type { RealGift } from '../events/relayProtocol';
+import { voice, speakableName } from './voice';
 import { QuizDeck, parseVote, type QuizQuestion } from './quiz';
 import { giftPhrase, loadCatalog, pickRealGifts, saveCatalog, type SkillGifts } from './realGifts';
 import {
@@ -203,6 +204,8 @@ export interface QuizSnapshot {
   options: [string, string, string];
   counts: [number, number, number];
   total: number;
+  /** đang đọc câu hỏi, chưa bắt đầu đếm ngược */
+  reading: boolean;
   /** giây còn lại để bình chọn (0 khi đang hiện kết quả) */
   timeLeft: number;
   duration: number;
@@ -261,12 +264,14 @@ export class GameEngine {
   nudge: { speaker: Exclude<Caster, 'team'>; text: string; t: number; max: number; image?: string } | null = null;
   /** quà TikTok thật được chọn cho từng chiêu (từ bảng quà của phòng live) */
   realGifts: SkillGifts = pickRealGifts(loadCatalog());
-  /** câu đố né yêu quái trước mỗi boss */
+  /** câu đố né kiếp nạn trước mỗi boss */
   quiz: {
     q: QuizQuestion;
     votes: Map<string, number>;
     counts: [number, number, number];
     result: { chosen: number; correct: number; ok: boolean } | null;
+    /** đang đọc câu hỏi: chưa đếm ngược */
+    reading: boolean;
   } | null = null;
   private quizDeck = new QuizDeck();
   private lastGiftAt = 0;
@@ -368,16 +373,41 @@ export class GameEngine {
   }
 
   private setPhase(p: Phase) {
+    const prev = this.phase;
     this.phase = p;
     this.phaseT = 0;
     if (p !== 'quiz') this.quiz = null;
     if (p === 'quiz') {
-      this.quiz = { q: this.quizDeck.draw(), votes: new Map(), counts: [0, 0, 0], result: null };
+      const qz = { q: this.quizDeck.draw(), votes: new Map<string, number>(), counts: [0, 0, 0] as [number, number, number], result: null, reading: true };
+      this.quiz = qz;
       sfx.gong();
+      const { question, options } = qz.q;
+      // đọc xong câu hỏi mới bắt đầu đếm ngược 10 giây
+      const startCountdown = () => {
+        if (this.quiz !== qz || !qz.reading) return;
+        qz.reading = false;
+        this.phaseT = 0;
+        this.publish(true);
+      };
+      const reading = voice.say(
+        `Sắp đến kiếp nạn thứ ${this.stage.index}: ${this.stage.name}! Câu đố né kiếp nạn! ${question} Số 1: ${options[0]}. Số 2: ${options[1]}. Số 3: ${options[2]}. Bình luận 1, 2 hoặc 3!`,
+        'high',
+        'quiz',
+        startCountdown,
+      );
+      if (!reading) qz.reading = false;
     }
     if (p === 'intro') {
       this.boss.enterT = 0;
       sfx.gong();
+      // vừa đọc tên kiếp nạn ở câu đố rồi thì chỉ báo boss xuất hiện
+      voice.say(
+        prev === 'quiz'
+          ? `${this.stage.boss.name} xuất hiện!`
+          : `Kiếp nạn thứ ${this.stage.index}: ${this.stage.name}. ${this.stage.boss.name} xuất hiện!`,
+        'normal',
+        'game',
+      );
     }
     if (p === 'battle') {
       this.boss.attackTimer = 2.2;
@@ -387,6 +417,7 @@ export class GameEngine {
     }
     if (p === 'victory') {
       sfx.victory();
+      voice.say(`Đã hàng phục ${this.stage.boss.name}!`, 'normal', 'game');
       this.callout = null;
       // boss đã chết vì chiêu khác trước khi hợp kích kịp kết liễu: hoàn lại, để dành cho yêu quái sau
       if (this.combo.active && !this.combo.landed) {
@@ -407,11 +438,15 @@ export class GameEngine {
       this.projectiles = [];
     }
     if (p === 'complete') {
+      voice.say('Thầy trò đã tới chùa Như Lai. Thỉnh kinh thành công! Cảm ơn mọi người đã đồng hành!', 'high', 'game');
       saveStage(0);
       sfx.gong();
       sfx.victory();
     }
-    if (p === 'wiped') sfx.defeat();
+    if (p === 'wiped') {
+      sfx.defeat();
+      voice.say('Đoàn kiệt sức rồi! Thả tim để cứu thầy trò!', 'normal', 'game');
+    }
     this.publish(true);
   }
 
@@ -501,6 +536,16 @@ export class GameEngine {
     qz.result = { chosen, correct: qz.q.correct, ok };
     if (ok) sfx.victory();
     else sfx.defeat();
+    const right = `Đáp án đúng là số ${qz.q.correct + 1}: ${qz.q.options[qz.q.correct]}.`;
+    voice.say(
+      ok
+        ? `Chính xác! ${right} Né được kiếp nạn, đi tiếp thôi!`
+        : chosen < 0
+          ? `Không ai trả lời! ${right}`
+          : `Sai rồi! ${right}`,
+      'high',
+      'quiz',
+    );
   }
 
   /** sang kiếp nạn kế tiếp (sau khi thắng boss hoặc né được boss) */
@@ -556,6 +601,12 @@ export class GameEngine {
     });
     if (this.giftToasts.length > 3) this.giftToasts.shift();
     sfx.gift(gift.tier);
+    const giftName = label ?? this.realGifts[gift.skill]?.name ?? gift.name;
+    voice.say(
+      `Cảm ơn ${speakableName(user.name)} đã tặng ${count > 1 ? `${count} ` : ''}${speakableName(giftName)}!${gift.skill === 'team_combo' ? ' Thầy trò hợp kích!' : ''}`,
+      gift.skill === 'team_combo' ? 'normal' : 'low',
+      'thanks',
+    );
 
     if (this.phase === 'battle' || this.phase === 'wiped') {
       this.performSkill(gift.skill, count);
@@ -1200,7 +1251,14 @@ export class GameEngine {
         if (this.phaseT >= TIMING.walk) this.setPhase('quiz');
         break;
       case 'quiz':
-        if (!this.quiz?.result) {
+        if (this.quiz?.reading) {
+          // giọng đọc bị kẹt thì không chờ mãi
+          if (this.phaseT >= TIMING.quizReadMax) {
+            this.quiz.reading = false;
+            this.phaseT = 0;
+          }
+        } else if (!this.quiz?.result) {
+          if (this.phaseT >= TIMING.quiz - 3 && this.phaseT - dt < TIMING.quiz - 3) voice.say('Còn ba giây!', 'idle', 'quiz');
           if (this.phaseT >= TIMING.quiz) {
             this.resolveQuiz();
             this.phaseT = 0;
@@ -1596,7 +1654,8 @@ export class GameEngine {
             options: this.quiz.q.options,
             counts: [...this.quiz.counts] as [number, number, number],
             total: this.quiz.votes.size,
-            timeLeft: this.quiz.result ? 0 : Math.max(0, TIMING.quiz - this.phaseT),
+            timeLeft: this.quiz.result ? 0 : this.quiz.reading ? TIMING.quiz : Math.max(0, TIMING.quiz - this.phaseT),
+            reading: this.quiz.reading,
             duration: TIMING.quiz,
             result: this.quiz.result,
           }

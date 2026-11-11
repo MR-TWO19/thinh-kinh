@@ -1183,11 +1183,16 @@ button {
 .music-btn {
   top: 13cqw;
 }
-.music-btn.off {
+.voice-btn {
+  top: 22cqw;
+}
+.music-btn.off,
+.voice-btn.off {
   opacity: 0.45;
   filter: grayscale(1);
 }
-.music-btn.off::after {
+.music-btn.off::after,
+.voice-btn.off::after {
   content: '';
   position: absolute;
   left: 18%;
@@ -1295,7 +1300,7 @@ button {
   vertical-align: middle;
 }
 
-/* ---------- câu đố né yêu quái ---------- */
+/* ---------- câu đố né kiếp nạn ---------- */
 .quiz-card {
   position: absolute;
   top: 44cqw;
@@ -1379,3 +1384,31 @@ button {
   background: rgba(255, 255, 255, 0.06);
   color: inherit;
 }
+
+/* ---------- giọng đọc ---------- */
+.voice-pick { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.voice-pick .btn { flex: 1; width: auto; }
+.voice-pick select {
+  flex: 1 1 100%;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+}
+.voice-note { font-size: 12px; opacity: 0.75; margin: 6px 0 0; line-height: 1.4; }
+.voice-cats { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.voice-cats.off { opacity: 0.45; }
+.voice-cat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+}
+.voice-cat input { width: 16px; height: 16px; accent-color: #ffd24a; }
+.voice-cat span { display: flex; flex-direction: column; line-height: 1.25; }
+.voice-cat small { opacity: 0.65; font-size: 11px; }

@@ -1,10 +1,55 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { eventBus } from '../events/bus';
 import { SimulatorSource } from '../events/sources';
 import type { EventEnvelope } from '../events/types';
 import { GIFTS, SKILLS, STAGES, casterName } from '../game/config';
 import { GIFT_KEYS, useShortcuts } from './useShortcuts';
 import { TikTokConnect } from './TikTokConnect';
+import { voice, VOICE_CATEGORIES } from '../game/voice';
+
+/** chọn giọng đọc tiếng Việt có trên máy */
+function VoicePicker() {
+  useSyncExternalStore(voice.subscribe, () => `${voice.enabled}|${voice.current?.name}|${voice.voices.length}|${JSON.stringify(voice.cats)}`);
+  if (!voice.supported)
+    return <p className="voice-note">Trình duyệt này không hỗ trợ giọng đọc.</p>;
+  if (!voice.voices.length)
+    return (
+      <p className="voice-note">
+        Máy chưa có giọng tiếng Việt. Windows: dùng Edge (có sẵn giọng HoaiMy, NamMinh) hoặc cài gói giọng nói Tiếng Việt trong Settings → Time &amp; Language. Mac: có sẵn giọng Linh.
+      </p>
+    );
+  return (
+    <>
+      <div className="voice-pick">
+        <select value={voice.current?.name ?? ''} onChange={(ev) => voice.setVoice(ev.target.value)}>
+          {voice.voices.map((v) => (
+            <option key={v.name} value={v.name}>
+              {v.name}
+            </option>
+          ))}
+        </select>
+        <button className={`chip ${voice.enabled ? 'on' : ''}`} onClick={() => voice.setEnabled(!voice.enabled)}>
+          {voice.enabled ? 'Bật' : 'Tắt'}
+        </button>
+        <button className="btn" onClick={() => voice.say('Xin chào! Thầy trò Đường Tăng lên đường thỉnh kinh!', 'high')}>
+          Nghe thử
+        </button>
+      </div>
+      <div className={`voice-cats ${voice.enabled ? '' : 'off'}`}>
+        {VOICE_CATEGORIES.map((c) => (
+          <label key={c.id} className="voice-cat">
+            <input type="checkbox" checked={voice.cats[c.id]} onChange={(ev) => voice.setCategory(c.id, ev.target.checked)} />
+            <span>
+              <b>{c.label}</b>
+              <small>{c.hint}</small>
+            </span>
+          </label>
+        ))}
+      </div>
+      <p className="voice-note">Giọng đọc phát ra loa máy: khi live nhớ bật thu Desktop Audio trong OBS / LIVE Studio.</p>
+    </>
+  );
+}
 
 
 function describe(env: EventEnvelope): string {
@@ -65,6 +110,11 @@ export function ControlPanel({ standalone = false }: { standalone?: boolean }) {
       <TikTokConnect />
 
       <div className="panel-group">
+        <div className="panel-label">🗣 Giọng đọc</div>
+        <VoicePicker />
+      </div>
+
+      <div className="panel-group">
         <div className="panel-label">Người xem</div>
         <button className="btn" onClick={() => sim.joinViewer()}>
           👋 Giả lập người xem mới <kbd>J</kbd>
@@ -72,14 +122,14 @@ export function ControlPanel({ standalone = false }: { standalone?: boolean }) {
       </div>
 
       <div className="panel-group">
-        <div className="panel-label">Bình luận → câu đố né yêu quái</div>
+        <div className="panel-label">Bình luận → câu đố né kiếp nạn</div>
         <div className="row quiz-votes">
-          {['A', 'B', 'C'].map((l) => (
+          {['1', '2', '3'].map((l) => (
             <button key={l} className="btn" onClick={() => sim.chat(l, true)}>
               💬 {l}
             </button>
           ))}
-          {['A', 'B', 'C'].map((l) => (
+          {['1', '2', '3'].map((l) => (
             <button key={`${l}5`} className="btn" onClick={() => [0, 1, 2, 3, 4].forEach(() => sim.chat(l, true))}>
               💬 {l} x5
             </button>
@@ -93,7 +143,7 @@ export function ControlPanel({ standalone = false }: { standalone?: boolean }) {
             setChatText('');
           }}
         >
-          <input value={chatText} onChange={(ev) => setChatText(ev.target.value)} placeholder="Gõ bình luận thử, vd: câu b" />
+          <input value={chatText} onChange={(ev) => setChatText(ev.target.value)} placeholder="Gõ bình luận thử, vd: câu 2" />
           <button className="btn" type="submit">
             Gửi
           </button>

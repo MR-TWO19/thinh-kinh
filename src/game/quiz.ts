@@ -1,11 +1,11 @@
 /**
- * Câu đố né yêu quái: trước mỗi boss hiện 1 câu hỏi 3 đáp án A / B / C.
- * Người xem bình luận A, B hoặc C trong thời gian đếm ngược; đáp án nhiều người chọn nhất thắng.
+ * Câu đố né kiếp nạn: trước mỗi boss hiện 1 câu hỏi 3 đáp án 1 / 2 / 3.
+ * Người xem bình luận 1, 2 hoặc 3 trong thời gian đếm ngược; đáp án nhiều người chọn nhất thắng.
  * Đúng → né được boss, đi tiếp kiếp nạn sau. Sai (hoặc không ai trả lời) → bị bắt phải đánh boss.
  * Câu hỏi tự viết dựa trên truyện Tây Du Ký (tác phẩm cổ điển).
  */
 
-export const QUIZ_LETTERS = ['A', 'B', 'C'] as const;
+export const QUIZ_LABELS = ['1', '2', '3'] as const;
 
 /** đáp án đầu tiên là đáp án đúng, thứ tự sẽ được xáo khi hiện ra */
 const BANK: { q: string; a: [string, string, string] }[] = [
@@ -81,10 +81,11 @@ export class QuizDeck {
 }
 
 /**
- * Đọc lựa chọn từ một bình luận: "A", "a", "b.", "C!!", "câu a", "đáp án B", "chọn c".
+ * Đọc lựa chọn từ một bình luận: "1", "2.", "3!!", "câu 1", "số 2", "đáp án 3", "chọn 1", "1️⃣".
+ * Không nhận chữ A/B/C vì "a" rất hay gặp trong bình luận tiếng Việt thường ngày.
  * Trả về 0/1/2, hoặc -1 nếu không phải phiếu bầu.
  */
 export function parseVote(text: string): number {
-  const m = /^\s*(?:câu|cau|đáp\s*án|dap\s*an|chọn|chon)?\s*([abc])(?![a-zà-ỹđ])/i.exec(text);
-  return m ? 'abc'.indexOf(m[1].toLowerCase()) : -1;
+  const m = /^\s*(?:câu|cau|số|so|đáp\s*án|dap\s*an|chọn|chon)?\s*([123])(?!\d)/i.exec(text);
+  return m ? Number(m[1]) - 1 : -1;
 }

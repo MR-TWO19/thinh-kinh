@@ -11,7 +11,7 @@ export interface LiveUser {
 export type LiveEvent =
   | { type: 'viewer_join'; user: LiveUser }
   | { type: 'like'; user: LiveUser; count: number }
-  /** bình luận của người xem (dùng để bình chọn câu đố né yêu quái) */
+  /** bình luận của người xem (dùng để bình chọn câu đố né kiếp nạn) */
   | { type: 'chat'; user: LiveUser; text: string }
   /** label: tên quà thật trên TikTok (nếu có) để hiển thị thay tên quà mẫu */
   | { type: 'gift'; user: LiveUser; giftId: string; count: number; label?: string; coins?: number; image?: string }
