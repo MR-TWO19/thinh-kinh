@@ -24,6 +24,7 @@ export interface RealGift {
 export type RelayEvent =
   | { type: 'join'; user: RelayUser }
   | { type: 'like'; user: RelayUser; count: number }
+  | { type: 'chat'; user: RelayUser; text: string }
   | { type: 'gift'; user: RelayUser; tiktokGiftId: number; giftName: string; coins: number; count: number; image?: string };
 
 export interface RelayStatus {

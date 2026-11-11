@@ -95,6 +95,12 @@ async function connect(rawName: string) {
     emit({ type: 'like', user: toUser(d.user), count });
   });
 
+  c.on(WebcastEvent.CHAT, (d) => {
+    const raw = d as { content?: string; comment?: string };
+    const text = String(raw.content ?? raw.comment ?? '').trim();
+    if (text) emit({ type: 'chat', user: toUser(d.user), text: text.slice(0, 200) });
+  });
+
   c.on(WebcastEvent.GIFT, (d) => {
     const g = d.gift;
     // quà dạng chuỗi (combo, như Hoa hồng): chỉ xử lý khi chuỗi kết thúc, với số lượng cuối cùng

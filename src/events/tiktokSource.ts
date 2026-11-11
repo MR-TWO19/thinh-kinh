@@ -59,6 +59,7 @@ export class TikTokRelaySource implements LiveEventSource {
     const local = { broadcast: false };
     if (ev.type === 'join') bus.emit({ type: 'viewer_join', user: ev.user }, 'live', local);
     else if (ev.type === 'like') bus.emit({ type: 'like', user: ev.user, count: ev.count }, 'live', local);
+    else if (ev.type === 'chat') bus.emit({ type: 'chat', user: ev.user, text: ev.text }, 'live', local);
     else {
       const gift = giftForCoins(ev.coins);
       bus.emit({ type: 'gift', user: ev.user, giftId: gift.id, count: ev.count, label: ev.giftName, coins: ev.coins, image: ev.image }, 'live', local);

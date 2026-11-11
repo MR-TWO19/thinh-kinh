@@ -701,7 +701,7 @@ function drawBoss(ctx: Ctx, e: GameEngine) {
     alpha = Math.max(0, 1 - b.dieT / 1.4);
     if (alpha <= 0) return;
   }
-  if (e.phase === 'walking' || e.phase === 'final_walk' || e.phase === 'complete') return;
+  if (e.phase === 'walking' || e.phase === 'quiz' || e.phase === 'final_walk' || e.phase === 'complete') return;
 
   const lunge = b.lungeT > 0 ? Math.sin((1 - b.lungeT / 0.5) * Math.PI) * -70 : 0;
   const cast = b.castT > 0 ? Math.sin((1 - b.castT / 0.9) * Math.PI) : 0;

@@ -2,6 +2,7 @@ import type { EventEnvelope, LiveUser } from '../events/types';
 import { sfx } from './audio';
 import { music, type Mood } from './music';
 import type { RealGift } from '../events/relayProtocol';
+import { QuizDeck, parseVote, type QuizQuestion } from './quiz';
 import { giftPhrase, loadCatalog, pickRealGifts, saveCatalog, type SkillGifts } from './realGifts';
 import {
   AUTO_ATTACK,
@@ -31,7 +32,7 @@ export const GROUND_Y = 900;
 export const BOSS_X = 580;
 export const BOSS_Y = 770;
 
-export type Phase = 'walking' | 'intro' | 'battle' | 'victory' | 'final_walk' | 'complete' | 'wiped';
+export type Phase = 'walking' | 'quiz' | 'intro' | 'battle' | 'victory' | 'final_walk' | 'complete' | 'wiped';
 export type AttackKind = 'auto' | 'staff' | 'quake' | 'shield' | 'ultimate' | 'crescent' | 'slam' | null;
 
 export interface HeroState {
@@ -194,6 +195,19 @@ export interface UiSnapshot {
   totalLikes: number;
   topSupporters: { name: string; score: number }[];
   phaseT: number;
+  quiz: QuizSnapshot | null;
+}
+
+export interface QuizSnapshot {
+  question: string;
+  options: [string, string, string];
+  counts: [number, number, number];
+  total: number;
+  /** giây còn lại để bình chọn (0 khi đang hiện kết quả) */
+  timeLeft: number;
+  duration: number;
+  /** có khi đã hết giờ */
+  result: { chosen: number; correct: number; ok: boolean } | null;
 }
 
 const SAVE_KEY = 'tk-stage';
@@ -247,6 +261,14 @@ export class GameEngine {
   nudge: { speaker: Exclude<Caster, 'team'>; text: string; t: number; max: number; image?: string } | null = null;
   /** quà TikTok thật được chọn cho từng chiêu (từ bảng quà của phòng live) */
   realGifts: SkillGifts = pickRealGifts(loadCatalog());
+  /** câu đố né yêu quái trước mỗi boss */
+  quiz: {
+    q: QuizQuestion;
+    votes: Map<string, number>;
+    counts: [number, number, number];
+    result: { chosen: number; correct: number; ok: boolean } | null;
+  } | null = null;
+  private quizDeck = new QuizDeck();
   private lastGiftAt = 0;
   private nudgeTimer = 8;
   private nudgeIdx = 0;
@@ -348,6 +370,11 @@ export class GameEngine {
   private setPhase(p: Phase) {
     this.phase = p;
     this.phaseT = 0;
+    if (p !== 'quiz') this.quiz = null;
+    if (p === 'quiz') {
+      this.quiz = { q: this.quizDeck.draw(), votes: new Map(), counts: [0, 0, 0], result: null };
+      sfx.gong();
+    }
     if (p === 'intro') {
       this.boss.enterT = 0;
       sfx.gong();
@@ -399,6 +426,9 @@ export class GameEngine {
       case 'like':
         this.onLike(ev.user, ev.count, env.source === 'simulator');
         break;
+      case 'chat':
+        this.onChat(ev.user, ev.text, env.source === 'simulator');
+        break;
       case 'gift':
         this.onGift(ev.user, ev.giftId, ev.count, env.source === 'simulator', ev.label, ev.coins, ev.image);
         break;
@@ -443,6 +473,47 @@ export class GameEngine {
     this.joinToasts.push({ id: this.toastSeq++, name: user.name, expires: this.time + 3.8 });
     if (this.joinToasts.length > 3) this.joinToasts.shift();
     sfx.join();
+  }
+
+  private onChat(user: LiveUser, text: string, isTest: boolean) {
+    this.addCompanion(user, isTest);
+    const qz = this.quiz;
+    if (this.phase !== 'quiz' || !qz || qz.result) return;
+    const choice = parseVote(text);
+    if (choice < 0) return;
+    // mỗi người 1 phiếu, bình luận lại thì đổi phiếu
+    const prev = qz.votes.get(user.id);
+    if (prev === choice) return;
+    if (prev !== undefined) qz.counts[prev] -= 1;
+    qz.votes.set(user.id, choice);
+    qz.counts[choice] += 1;
+    if (prev === undefined) this.contribute(user, 1);
+  }
+
+  /** hết giờ bình chọn: đáp án nhiều phiếu nhất thắng (hoà thì bốc ngẫu nhiên trong các đáp án hoà) */
+  private resolveQuiz() {
+    const qz = this.quiz;
+    if (!qz) return;
+    const best = Math.max(...qz.counts);
+    let chosen = -1;
+    if (best > 0) chosen = pick([0, 1, 2].filter((i) => qz.counts[i] === best));
+    const ok = chosen === qz.q.correct;
+    qz.result = { chosen, correct: qz.q.correct, ok };
+    if (ok) sfx.victory();
+    else sfx.defeat();
+  }
+
+  /** sang kiếp nạn kế tiếp (sau khi thắng boss hoặc né được boss) */
+  private advanceStage() {
+    if (this.stageIndex < STAGES.length - 1) {
+      this.stageIndex += 1;
+      const keepHp = this.heroes.map((h) => ({ hp: Math.max(h.hp, h.def.maxHp * 0.5) }));
+      this.setupStage();
+      this.heroes.forEach((h, i) => (h.hp = Math.round(Math.min(h.def.maxHp, keepHp[i].hp))));
+      this.setPhase('walking');
+    } else {
+      this.setPhase('final_walk');
+    }
   }
 
   private onLike(user: LiveUser, count: number, isTest: boolean) {
@@ -1126,7 +1197,18 @@ export class GameEngine {
     switch (this.phase) {
       case 'walking':
         this.worldX += 150 * dt;
-        if (this.phaseT >= TIMING.walk) this.setPhase('intro');
+        if (this.phaseT >= TIMING.walk) this.setPhase('quiz');
+        break;
+      case 'quiz':
+        if (!this.quiz?.result) {
+          if (this.phaseT >= TIMING.quiz) {
+            this.resolveQuiz();
+            this.phaseT = 0;
+          }
+        } else if (this.phaseT >= TIMING.quizResult) {
+          if (this.quiz.result.ok) this.advanceStage();
+          else this.setPhase('intro');
+        }
         break;
       case 'intro':
         this.boss.enterT = Math.min(1, this.phaseT / (TIMING.intro * 0.7));
@@ -1137,17 +1219,7 @@ export class GameEngine {
         break;
       case 'victory':
         this.boss.dieT += dt;
-        if (this.phaseT >= TIMING.victory) {
-          if (this.stageIndex < STAGES.length - 1) {
-            this.stageIndex += 1;
-            const keepHp = this.heroes.map((h) => ({ hp: Math.max(h.hp, h.def.maxHp * 0.5) }));
-            this.setupStage();
-            this.heroes.forEach((h, i) => (h.hp = Math.round(Math.min(h.def.maxHp, keepHp[i].hp))));
-            this.setPhase('walking');
-          } else {
-            this.setPhase('final_walk');
-          }
-        }
+        if (this.phaseT >= TIMING.victory) this.advanceStage();
         break;
       case 'final_walk':
         this.worldX += 150 * dt;
@@ -1423,6 +1495,8 @@ export class GameEngine {
       case 'walking':
       case 'victory':
         return 'walk';
+      case 'quiz':
+        return 'calm';
       case 'intro':
       case 'battle':
         return this.boss.enraged ? 'rage' : 'battle';
@@ -1447,6 +1521,7 @@ export class GameEngine {
     const bossFrac = 1 - this.boss.hp / this.stage.boss.maxHp;
     let seg = 0;
     if (this.phase === 'walking') seg = (this.phaseT / TIMING.walk) * 0.2;
+    else if (this.phase === 'quiz') seg = 0.2;
     else seg = 0.2 + bossFrac * 0.8;
     return (this.stageIndex + seg) / (n + 1);
   }
@@ -1515,6 +1590,17 @@ export class GameEngine {
       callout: this.callout,
       totalLikes: this.totalLikes,
       topSupporters: top,
+      quiz: this.quiz
+        ? {
+            question: this.quiz.q.question,
+            options: this.quiz.q.options,
+            counts: [...this.quiz.counts] as [number, number, number],
+            total: this.quiz.votes.size,
+            timeLeft: this.quiz.result ? 0 : Math.max(0, TIMING.quiz - this.phaseT),
+            duration: TIMING.quiz,
+            result: this.quiz.result,
+          }
+        : null,
     };
   }
 }

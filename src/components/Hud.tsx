@@ -114,6 +114,7 @@ export function Hud({ engine }: { engine: GameEngine }) {
       )}
 
       <PhaseBanner s={s} />
+      {s.phase === 'quiz' && s.quiz && <QuizCard q={s.quiz} key={`quiz-${s.stageIndex}`} />}
 
       {s.lowHp && s.phase !== 'wiped' && (
         <div className="lowhp-warning">
@@ -296,6 +297,46 @@ function hpColor(r: number) {
   if (r < 0.3) return 'linear-gradient(90deg,#ff2d55,#ff6b6b)';
   if (r < 0.6) return 'linear-gradient(90deg,#ffb020,#ffd24a)';
   return 'linear-gradient(90deg,#2ed47a,#8affb5)';
+}
+
+const LETTERS = ['A', 'B', 'C'];
+
+/** câu đố trước boss: người xem bình luận A / B / C */
+function QuizCard({ q }: { q: NonNullable<UiSnapshot['quiz']> }) {
+  const r = q.result;
+  const max = Math.max(1, ...q.counts);
+  return (
+    <div className={`quiz-card ${r ? (r.ok ? 'ok' : 'fail') : ''}`}>
+      <div className="quiz-head">
+        <span className="quiz-tag">❓ CÂU ĐỐ NÉ YÊU QUÁI</span>
+        {!r && <span className="quiz-timer">{Math.ceil(q.timeLeft)}s</span>}
+      </div>
+      <div className="quiz-q">{q.question}</div>
+      <div className="quiz-opts">
+        {q.options.map((opt, i) => {
+          const cls = r ? (i === r.correct ? 'right' : i === r.chosen ? 'wrong' : 'dim') : '';
+          return (
+            <div key={i} className={`quiz-opt ${cls}`}>
+              <div className="quiz-fill" style={{ width: `${(q.counts[i] / max) * 100}%` }} />
+              <span className="quiz-letter">{LETTERS[i]}</span>
+              <span className="quiz-text">{opt}</span>
+              <span className="quiz-count">{q.counts[i]}</span>
+            </div>
+          );
+        })}
+      </div>
+      {!r && <div className="quiz-time"><div style={{ width: `${(q.timeLeft / q.duration) * 100}%` }} /></div>}
+      <div className="quiz-foot">
+        {r
+          ? r.ok
+            ? `✅ Đáp án ${LETTERS[r.correct]} đúng! Thầy trò né được yêu quái, đi tiếp!`
+            : r.chosen < 0
+              ? `❌ Không ai trả lời! Đáp án đúng là ${LETTERS[r.correct]}. Phải đánh boss!`
+              : `❌ Chọn ${LETTERS[r.chosen]} sai rồi! Đáp án đúng là ${LETTERS[r.correct]}. Phải đánh boss!`
+          : `💬 Bình luận A, B hoặc C để chọn · ${q.total} người đã trả lời`}
+      </div>
+    </div>
+  );
 }
 
 function PhaseBanner({ s }: { s: UiSnapshot }) {

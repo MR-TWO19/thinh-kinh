@@ -14,6 +14,8 @@ function describe(env: EventEnvelope): string {
       return `👋 ${e.user.name} vào live`;
     case 'like':
       return `❤ ${e.user.name} thả ${e.count} tim`;
+    case 'chat':
+      return `💬 ${e.user.name}: ${e.text}`;
     case 'gift': {
       const g = GIFTS.find((x) => x.id === e.giftId);
       return `🎁 ${e.user.name} tặng ${e.label ? `${e.label} → ` : ''}${g?.name ?? e.giftId} x${e.count}`;
@@ -39,6 +41,7 @@ export function ControlPanel({ standalone = false }: { standalone?: boolean }) {
   }, []);
   const [log, setLog] = useState<EventEnvelope[]>([]);
   const [giftCount, setGiftCount] = useState(1);
+  const [chatText, setChatText] = useState('');
 
   useEffect(() => {
     return eventBus.subscribe((env) => setLog((l) => [env, ...l].slice(0, 30)));
@@ -66,6 +69,35 @@ export function ControlPanel({ standalone = false }: { standalone?: boolean }) {
         <button className="btn" onClick={() => sim.joinViewer()}>
           👋 Giả lập người xem mới <kbd>J</kbd>
         </button>
+      </div>
+
+      <div className="panel-group">
+        <div className="panel-label">Bình luận → câu đố né yêu quái</div>
+        <div className="row quiz-votes">
+          {['A', 'B', 'C'].map((l) => (
+            <button key={l} className="btn" onClick={() => sim.chat(l, true)}>
+              💬 {l}
+            </button>
+          ))}
+          {['A', 'B', 'C'].map((l) => (
+            <button key={`${l}5`} className="btn" onClick={() => [0, 1, 2, 3, 4].forEach(() => sim.chat(l, true))}>
+              💬 {l} x5
+            </button>
+          ))}
+        </div>
+        <form
+          className="chat-form"
+          onSubmit={(ev) => {
+            ev.preventDefault();
+            if (chatText.trim()) sim.chat(chatText.trim(), true);
+            setChatText('');
+          }}
+        >
+          <input value={chatText} onChange={(ev) => setChatText(ev.target.value)} placeholder="Gõ bình luận thử, vd: câu b" />
+          <button className="btn" type="submit">
+            Gửi
+          </button>
+        </form>
       </div>
 
       <div className="panel-group">

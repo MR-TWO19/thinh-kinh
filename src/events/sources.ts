@@ -55,6 +55,12 @@ export class SimulatorSource implements LiveEventSource {
     this.bus?.emit({ type: 'like', user: this.anyTestUser(), count }, 'simulator');
   }
 
+  /** bình luận thử; newUser = true: mỗi bình luận từ một khách thử khác (để thử bình chọn) */
+  chat(text: string, newUser = false) {
+    const user = newUser ? this.newTestUser() : this.anyTestUser();
+    this.bus?.emit({ type: 'chat', user, text }, 'simulator');
+  }
+
   gift(giftId: string, count = 1) {
     this.bus?.emit({ type: 'gift', user: this.anyTestUser(), giftId, count }, 'simulator');
   }
