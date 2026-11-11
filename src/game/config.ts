@@ -233,6 +233,7 @@ export const TIMING = {
   quiz: 10, // giây bình chọn câu đố né kiếp nạn (đếm sau khi đọc xong câu hỏi)
   quizReadMax: 25, // giây chờ đọc câu hỏi tối đa, quá thì cứ đếm ngược
   quizResult: 3.2, // giây hiện kết quả câu đố
+  autoRevive: 5, // giây sau khi cả đội gục, Đường Tăng tự niệm chú hồi sinh
   finalWalk: 5, // giây đi bộ đến chùa
 };
 

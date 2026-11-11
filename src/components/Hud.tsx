@@ -391,7 +391,10 @@ function PhaseBanner({ s }: { s: UiSnapshot }) {
     return (
       <div className="phase-banner wiped">
         <div className="pb-big">ĐOÀN KIỆT SỨC!</div>
-        <div className="pb-sub">❤ Thả tim để Đường Tăng hồi sinh các đệ tử · 🎁 Tặng quà để đệ tử đứng dậy</div>
+        <div className="pb-sub">
+          {s.reviveIn != null ? `🙏 Sư phụ tự niệm chú hồi sinh sau ${s.reviveIn}s` : '🙏 Sư phụ đang niệm chú hồi sinh…'}
+        </div>
+        <div className="pb-sub">❤ Thả tim để hồi sinh sớm · 🎁 Tặng quà để đệ tử đứng dậy</div>
       </div>
     );
   return null;

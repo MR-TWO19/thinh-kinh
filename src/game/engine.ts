@@ -189,6 +189,8 @@ export interface UiSnapshot {
   comboSaved: number;
   realGifts: SkillGifts;
   lowHp: boolean;
+  /** giây còn lại tới khi Đường Tăng tự hồi sinh cả đội (chỉ khi đội gục hết) */
+  reviveIn: number | null;
   companions: Companion[];
   companionCount: number;
   joinToasts: JoinToast[];
@@ -469,7 +471,7 @@ export class GameEngine {
     }
     if (p === 'wiped') {
       sfx.defeat();
-      voice.say('Đoàn kiệt sức rồi! Thả tim để cứu thầy trò!', 'normal', 'game');
+      voice.say('Các đồ đệ gục hết rồi! Sư phụ sắp niệm chú hồi sinh, thả tim tiếp sức nào!', 'normal', 'game');
     }
     this.publish(true);
   }
@@ -1017,6 +1019,11 @@ export class GameEngine {
     if (this.tang.castT > 0 || this.tang.energy < TANG.energyMax) return;
     if (this.phase === 'complete' || this.phase === 'final_walk') return;
     this.tang.energy -= TANG.energyMax;
+    this.castHeal();
+  }
+
+  /** Đường Tăng niệm chú: hồi máu cả đội, hồi sinh đệ tử đã gục */
+  private castHeal() {
     this.tang.castT = this.tang.castDur;
     this.showCallout('ĐƯỜNG TĂNG · PHẬT QUANG PHỔ CHIẾU', '#9dffc4');
     this.shout('tang', ['A di đà Phật! Phật quang phổ chiếu!', 'Các đồ đệ, hồi sức nào!', 'Thiện tai, thiện tai!'], 10);
@@ -1388,6 +1395,8 @@ export class GameEngine {
         }
         break;
       case 'wiped':
+        // cả đội gục quá lâu: sư phụ tự niệm chú hồi sinh, không tốn năng lượng
+        if (this.phaseT >= TIMING.autoRevive && this.tang.castT <= 0) this.castHeal();
         break;
     }
 
@@ -1729,6 +1738,7 @@ export class GameEngine {
       realGifts: this.realGifts,
       comboGoal: COMBO_GOAL,
       lowHp: this.isLowHp() && (this.phase === 'battle' || this.phase === 'wiped'),
+      reviveIn: this.phase === 'wiped' && this.tang.castT <= 0 ? Math.max(0, Math.ceil(TIMING.autoRevive - this.phaseT)) : null,
       companions: this.companions.slice(0, 7),
       companionCount: this.companions.length,
       joinToasts: [...this.joinToasts],
