@@ -181,6 +181,10 @@ wss.on('connection', (ws) => {
     }
     if (msg.t === 'connect') void connect(msg.username);
     else if (msg.t === 'disconnect') void disconnect().then(() => setStatus({ state: 'idle', message: undefined }));
+    // bảng điều khiển gửi sự kiện: chuyển tới mọi trang khác (sân khấu ở LIVE Studio, OBS, trang GitHub…)
+    else if (msg.t === 'sim' && msg.env?.event && typeof msg.env.id === 'string') {
+      for (const other of wss.clients) if (other !== ws) send(other, { t: 'sim', env: msg.env });
+    }
   });
 });
 

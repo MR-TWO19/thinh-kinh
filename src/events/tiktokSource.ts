@@ -46,6 +46,7 @@ export class TikTokRelaySource implements LiveEventSource {
       }
       if (msg.t === 'event') this.forward(msg.event);
       else if (msg.t === 'catalog') this.onCatalog?.(msg.gifts);
+      else if (msg.t === 'sim') this.bus?.receive(msg.env);
     };
     // relay chưa chạy hoặc bị tắt: thử lại sau vài giây, không làm phiền gì khác
     ws.onclose = () => {

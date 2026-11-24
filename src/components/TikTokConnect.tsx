@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { RELAY_URL, type RealGift, type RelayClientMsg, type RelayServerMsg, type RelayStatus } from '../events/relayProtocol';
+import { eventBus } from '../events/bus';
 import { GIFTS, SKILLS, casterName } from '../game/config';
 import { loadCatalog, pickRealGifts, viGiftName } from '../game/realGifts';
 
@@ -33,7 +34,13 @@ export function TikTokConnect() {
     const open = () => {
       const ws = new WebSocket(RELAY_URL);
       wsRef.current = ws;
-      ws.onopen = () => setRelayUp(true);
+      ws.onopen = () => {
+        setRelayUp(true);
+        // nút trên bảng điều khiển cũng tới được sân khấu ở trình duyệt khác (LIVE Studio, trang GitHub…)
+        eventBus.setRemote((env) => {
+          if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: 'sim', env } satisfies RelayClientMsg));
+        });
+      };
       ws.onmessage = (m) => {
         try {
           const msg: RelayServerMsg = JSON.parse(String(m.data));
@@ -45,6 +52,7 @@ export function TikTokConnect() {
       };
       ws.onclose = () => {
         setRelayUp(false);
+        if (wsRef.current === ws) eventBus.setRemote(null);
         if (alive) timer = setTimeout(open, 3000);
       };
     };

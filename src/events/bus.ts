@@ -15,12 +15,16 @@ export class EventBus {
   private listeners = new Set<Listener>();
   private channel: BroadcastChannel | null = null;
   private seq = 0;
+  /** gửi sự kiện qua relay tới sân khấu ở trình duyệt khác (BroadcastChannel chỉ tới được cửa sổ cùng địa chỉ) */
+  private remote: ((env: EventEnvelope) => void) | null = null;
+  /** id đã xử lý: một sự kiện có thể tới cả qua BroadcastChannel lẫn relay */
+  private seen = new Set<string>();
 
   constructor() {
     if (typeof BroadcastChannel !== 'undefined') {
       this.channel = new BroadcastChannel(CHANNEL_NAME);
       this.channel.onmessage = (msg: MessageEvent<EventEnvelope>) => {
-        if (msg.data && msg.data.event) this.dispatch(msg.data);
+        if (msg.data && msg.data.event) this.receive(msg.data);
       };
     }
   }
@@ -37,8 +41,21 @@ export class EventBus {
       event,
     };
     this.dispatch(env);
-    if (opts.broadcast !== false) this.channel?.postMessage(env);
+    if (opts.broadcast !== false) {
+      this.channel?.postMessage(env);
+      this.remote?.(env);
+    }
     return env;
+  }
+
+  setRemote(fn: ((env: EventEnvelope) => void) | null) {
+    this.remote = fn;
+  }
+
+  /** sự kiện từ cửa sổ / trình duyệt khác */
+  receive(env: EventEnvelope) {
+    if (this.seen.has(env.id)) return;
+    this.dispatch(env);
   }
 
   subscribe(fn: Listener): () => void {
@@ -47,6 +64,8 @@ export class EventBus {
   }
 
   private dispatch(env: EventEnvelope) {
+    this.seen.add(env.id);
+    if (this.seen.size > 500) this.seen.delete(this.seen.values().next().value as string);
     for (const fn of this.listeners) fn(env);
   }
 }

@@ -1,5 +1,7 @@
 /** Giao thức giữa relay Node (server/relay.ts) và trang web. Dùng chung cho cả hai phía. */
 
+import type { EventEnvelope } from './types';
+
 /**
  * relay chạy cùng máy với web, nên lấy theo địa chỉ đang mở trang (điện thoại mở qua IP máy tính vẫn nối được).
  * Trang https không được nối ws:// tới IP mạng, nhưng được nối tới 127.0.0.1, nên trang https dùng 127.0.0.1.
@@ -38,5 +40,7 @@ export interface RelayStatus {
 export type RelayServerMsg =
   | { t: 'status'; status: RelayStatus }
   | { t: 'event'; event: RelayEvent }
-  | { t: 'catalog'; gifts: RealGift[] };
-export type RelayClientMsg = { t: 'connect'; username: string } | { t: 'disconnect' };
+  | { t: 'catalog'; gifts: RealGift[] }
+  /** sự kiện từ bảng điều khiển ở trình duyệt khác (relay chuyển tiếp tới mọi sân khấu) */
+  | { t: 'sim'; env: EventEnvelope };
+export type RelayClientMsg = { t: 'connect'; username: string } | { t: 'disconnect' } | { t: 'sim'; env: EventEnvelope };
