@@ -516,6 +516,12 @@ export class GameEngine {
   }
 
   private addCompanion(user: LiveUser, isTest: boolean): boolean {
+    // người xem thật đầu tiên vào: bỏ hết khách thử khỏi danh sách đồng hành và bảng đóng góp
+    if (!isTest && this.companions.some((c) => c.isTest)) {
+      for (const c of this.companions) if (c.isTest) this.companionIds.delete(c.id);
+      this.companions = this.companions.filter((c) => !c.isTest);
+      for (const id of [...this.contributions.keys()]) if (id.startsWith('test-')) this.contributions.delete(id);
+    }
     if (this.companionIds.has(user.id)) {
       // đưa lên đầu danh sách
       const idx = this.companions.findIndex((c) => c.id === user.id);
