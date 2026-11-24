@@ -648,6 +648,11 @@ export class GameEngine {
     } else if (this.phase !== 'complete' && this.phase !== 'final_walk') {
       if (gift.skill === 'team_combo') this.saveCombo(count);
       else this.pendingSkills.push({ skill: gift.skill, count });
+      // đang câu đố né kiếp nạn: có quà thì gọi boss ra luôn để chiêu được dùng ngay, không chờ tới trận sau
+      if (this.phase === 'quiz' && !this.quiz?.result) {
+        this.forcedFight = false;
+        this.setPhase('intro');
+      }
     }
   }
 
@@ -1351,6 +1356,12 @@ export class GameEngine {
       case 'walking':
         this.worldX += 150 * dt;
         if (this.phaseT >= TIMING.walk) {
+          // có quà tặng lúc đi đường: vào đánh luôn để chiêu được dùng, không hỏi câu đố
+          if (this.pendingSkills.length > 0) {
+            this.forcedFight = false;
+            this.setPhase('intro');
+            break;
+          }
           // 2 lần câu đố né kiếp nạn thì 1 lần bắt buộc phải đánh
           this.forcedFight = this.quizStreak >= TIMING.quizPerForced;
           if (this.forcedFight) this.quizStreak = 0;
